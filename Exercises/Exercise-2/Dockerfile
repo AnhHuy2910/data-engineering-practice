@@ -6,3 +6,4 @@ COPY . /app
 
 RUN python3 -m pip install -r requirements.txt
 RUN pip install beautifulsoup4 pandas requests lxml
+
