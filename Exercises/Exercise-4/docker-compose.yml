@@ -1,12 +1,9 @@
-version: "3.9"
+version: '3.8'
+
 services:
-  test:
-    image: "exercise-4"
+  exercise-4-run:
+    build: .
     volumes:
       - .:/app
-    command: python3 -m pytest
-  run:
-    image: "exercise-4"
-    volumes:
-      - .:/app
-    command: python3 main.py
+    working_dir: /app
+    command: python main.py
