@@ -1,6 +1,6 @@
-FROM python:latest
-
-WORKDIR app
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install requests
 COPY . /app
-
-RUN python3 -m pip install -r requirements.txt
