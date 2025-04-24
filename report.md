@@ -167,7 +167,7 @@ def find\_target\_file():
 
                 return filename
 
-    raise Exception("❌ File with timestamp 2024-01-19 10:27 not found.")
+    raise Exception("File with timestamp 2024-01-19 10:27 not found.")
 
 def download\_file(filename):
 
@@ -185,7 +185,7 @@ def download\_file(filename):
 
         f.write(response.content)
 
-    print(f"✅ Downloaded file to {local\_path}")
+    print(f"Downloaded file to {local\_path}")
 
     return local\_path
 
@@ -195,7 +195,7 @@ def analyze\_file(filepath):
 
     if 'HourlyDryBulbTemperature' not in df.columns:
 
-        raise Exception("❌ 'HourlyDryBulbTemperature' column not found in the file.")
+        raise Exception("'HourlyDryBulbTemperature' column not found in the file.")
 
     # Chuyển đổi nhiệt độ về kiểu số (nếu cần, vì có thể là string)
 
@@ -207,7 +207,7 @@ def analyze\_file(filepath):
 
     hottest\_records = df[df['HourlyDryBulbTemperature'] == max\_temp]
 
-    print("\n🌡️ Records with the highest HourlyDryBulbTemperature:")
+    print("\nRecords with the highest HourlyDryBulbTemperature:")
 
     print(hottest\_records)
 
@@ -215,21 +215,21 @@ def main():
 
     try:
 
-        print("🔍 Looking for file...")
+        print("Looking for file...")
 
         filename = find\_target\_file()
 
-        print(f"📄 Found file: {filename}")
+        print(f"Found file: {filename}")
 
         filepath = download\_file(filename)
 
-        print("📊 Analyzing file...")
+        print("Analyzing file...")
 
         analyze\_file(filepath)
 
     except Exception as e:
 
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
 
 if \_\_name\_\_ == "\_\_main\_\_":
 
