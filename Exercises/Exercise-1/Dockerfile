@@ -1,6 +1,9 @@
-FROM python:latest
+FROM python:3.9-slim
 
-WORKDIR app
-COPY . /app
+WORKDIR /app
 
-RUN python3 -m pip install -r requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+CMD ["python3", "main.py"]
