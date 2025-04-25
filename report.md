@@ -694,3 +694,190 @@ if __name__ == "__main__":
 > ![image](https://github.com/user-attachments/assets/71196633-75a3-4ead-b33b-21cdd6eafd2f)
 > 
 
+
+### CẤU TRÚC THƯ MỤC ĐỂ CHẠY DAG AIRFLOW
+data-engineering-practice-Le_Trung_Huu/
+│
+├── dags/                    ← 📂 Chứa pipeline_dag.py
+│   └── pipeline_dag.py  
+│
+├── Exercises/                   ← 📂 Chứa các bài tập với Dockerfile riêng
+│   ├── Exercise-1/
+│   │   ├── main.py 
+│   ├── Exercise-2/
+│   │   ├── main.py 
+│   ├── Exercise-3/
+│   ├── Exercise-4/
+│   └── Exercise-5/
+│
+├── pipeline.py                  ← 📄 Code pipeline gốc nếu muốn gọi ngoài Airflow
+└── requirements.txt
+└── docker-compose.yml       ← ✅ Chạy trong thư mục này
+└── Dockerfile
+
+#### Dockerfile
+```
+FROM python:3.10-slim
+
+# Cài đặt các thư viện cần thiết
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Sao chép mã nguồn từ thư mục hiện tại vào trong container
+COPY . /app
+
+WORKDIR /app
+
+# Lệnh chạy khi container được khởi động
+CMD ["python", "main.py"]
+```
+#### Docker-compose:
+```
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+  airflow-init:
+    image: apache/airflow:2.9.1-python3.10
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    entrypoint: bash -c "
+      airflow db init && \
+      airflow users create \
+        --username airflow \
+        --password airflow \
+        --firstname Air \
+        --lastname Flow \
+        --role Admin \
+        --email airflow@example.com
+      "
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./Exercises:/opt/airflow/Exercises  # Mount thư mục Exercises từ ngoài vào container
+    networks:
+      - app-network
+
+  airflow-webserver:
+    image: apache/airflow:2.9.1-python3.10
+    depends_on:
+      - airflow-init
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'True'
+    ports:
+      - "8080:8080"
+    command: ["airflow", "webserver"]
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./Exercises:/opt/airflow/Exercises  # Mount thư mục Exercises từ ngoài vào container
+    networks:
+      - app-network
+
+  airflow-scheduler:
+    image: apache/airflow:2.9.1-python3.10
+    depends_on:
+      - airflow-webserver
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    command: ["airflow", "scheduler"]
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./Exercises:/opt/airflow/Exercises  # Mount thư mục Exercises từ ngoài vào container
+    networks:
+      - app-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
+volumes:
+  postgres-db-volume:
+
+networks:
+  app-network:
+    driver: bridge
+
+#docker-compose up airflow-init
+```
+
+#### Pipeline-dag.py
+```
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime, timedelta
+import os
+import subprocess
+
+default_args = {
+    'owner': 'airflow',
+    'retries': 1,
+    'retry_delay': timedelta(minutes=1),
+}
+
+def run_main_py(path):
+    print(f"🔁 Đang chạy: {path}")
+    result = subprocess.run(["python", path], capture_output=True, text=True)
+    print("📄 STDOUT:", result.stdout)
+    print("❗ STDERR:", result.stderr)
+    result.check_returncode()
+
+with DAG(
+    dag_id='exercise_main_pipeline',
+    default_args=default_args,
+    description='Chạy tất cả các main.py trong mỗi Exercise hàng ngày lúc 10h sáng',
+    schedule_interval='0 10 * * *',  # 10:00 UTC mỗi ngày
+    start_date=datetime(2025, 4, 25),
+    catchup=False,
+    tags=["exercise"],
+) as dag:
+
+    exercises_dir = "/opt/airflow/Exercises"
+
+    if not os.path.exists(exercises_dir):
+        raise FileNotFoundError(f"Không tìm thấy thư mục: {exercises_dir}")
+
+    previous_task = None
+
+    for ex in sorted(os.listdir(exercises_dir)):
+        ex_path = os.path.join(exercises_dir, ex, "main.py")
+        if os.path.isfile(ex_path):
+            task = PythonOperator(
+                task_id=f'run_{ex.lower()}',
+                python_callable=run_main_py,
+                op_args=[ex_path],
+            )
+            if previous_task:
+                previous_task >> task
+            previous_task = task
+```
+
+### KẾT QUẢ SAU KHI CHẠY DAG
+>![image](https://github.com/user-attachments/assets/749ac8e5-5aea-428b-b2b4-df0cf866040c)
+
+> ![image](https://github.com/user-attachments/assets/b889a380-7201-49db-af30-2384068a9653)
+>![image](https://github.com/user-attachments/assets/5c9d74f3-9391-4b29-8a4a-6bc10718b474)
+
