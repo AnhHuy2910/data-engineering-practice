@@ -696,6 +696,7 @@ if __name__ == "__main__":
 
 
 ### CẤU TRÚC THƯ MỤC ĐỂ CHẠY DAG AIRFLOW
+```
 data-engineering-practice-Le_Trung_Huu/
 │
 ├── dags/                    ← 📂 Chứa pipeline_dag.py
@@ -714,6 +715,8 @@ data-engineering-practice-Le_Trung_Huu/
 └── requirements.txt
 └── docker-compose.yml       ← ✅ Chạy trong thư mục này
 └── Dockerfile
+
+```
 
 #### Dockerfile
 ```
